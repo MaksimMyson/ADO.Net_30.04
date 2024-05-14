@@ -15,47 +15,36 @@ namespace ADO.Net_30._04
     public partial class MainWindow : Window
     {
 
-        private readonly DBManager _dbManager;
+        private DBManager dbManager;
 
         public MainWindow()
         {
             InitializeComponent();
-
-            string connectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=master;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=False;Application Intent=ReadWrite;Multi Subnet Failover=False";
-            _dbManager = new DBManager(connectionString);
-
-            RefreshData();
+            DataContext = new MainViewModel();
+            dbManager = new DBManager("Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=master;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=False;Application Intent=ReadWrite;Multi Subnet Failover=False");
         }
 
-        private void InsertData_Click(object sender, RoutedEventArgs e)
+        private void Connect_Click(object sender, RoutedEventArgs e)
         {
-            string name = txtName.Text;
-            string type = txtType.Text;
-            string color = txtColor.Text;
-            int calories;
-            if (!int.TryParse(txtCalories.Text, out calories))
+            if (dbManager.TestConnection())
             {
-                MessageBox.Show("Please enter a valid number for calories.");
-                return;
-            }
-
-            bool success = _dbManager.InsertData(name, type, color, calories);
-
-            if (success)
-            {
-                MessageBox.Show("Data inserted successfully.");
-                RefreshData();
+                ConnectionStatusTextBox.Text = "Connected";
             }
             else
             {
-                MessageBox.Show("Error occurred while inserting data.");
+                ConnectionStatusTextBox.Text = "Connection Failed";
             }
         }
 
-        private void RefreshData()
+        private void Disconnect_Click(object sender, RoutedEventArgs e)
         {
-            var dataList = _dbManager.SelectAllData();
-            dataListView.ItemsSource = dataList;
+            ConnectionStatusTextBox.Text = "Disconnected";
         }
+    }
+
+    internal class MainViewModel
+    {
+        public MainViewModel()
+        { }
     }
 }

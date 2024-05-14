@@ -1,5 +1,8 @@
 ﻿using System;
+using Microsoft.Data.SqlClient;
+using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,74 +11,72 @@ namespace Data
 {
     public class DBManager
     {
-        private readonly string _connectionString;
+        private readonly string connectionString;
 
         public DBManager(string connectionString)
         {
-            _connectionString = connectionString;
+            this.connectionString = connectionString;
         }
 
-        public bool InsertData(string name, string type, string color, int calories)
+        public bool TestConnection()
         {
-            string insertQuery = "INSERT INTO VegetablesAndFruits (name, type, color, calories) VALUES (@Name, @Type, @Color, @Calories)";
-
-            using (SqlConnection connection = new SqlConnection(_connectionString))
+            using (SqlConnection connection = new SqlConnection(connectionString))
             {
-                SqlCommand command = new SqlCommand(insertQuery, connection);
-                command.Parameters.AddWithValue("@Name", name);
-                command.Parameters.AddWithValue("@Type", type);
-                command.Parameters.AddWithValue("@Color", color);
-                command.Parameters.AddWithValue("@Calories", calories);
-
                 try
                 {
                     connection.Open();
-                    int rowsAffected = command.ExecuteNonQuery();
-                    return rowsAffected > 0;
+                    return true;
                 }
-                catch (Exception ex)
+                catch (SqlException)
                 {
-                    Console.WriteLine("Error: " + ex.Message);
                     return false;
                 }
             }
         }
 
-        public List<Dictionary<string, object>> SelectAllData()
+        public DataTable ExecuteQuery(string query)
         {
-            string selectQuery = "SELECT * FROM VegetablesAndFruits";
-            List<Dictionary<string, object>> results = new List<Dictionary<string, object>>();
-
-            using (SqlConnection connection = new SqlConnection(_connectionString))
+            DataTable dataTable = new DataTable();
+            using (SqlConnection connection = new SqlConnection(connectionString))
             {
-                SqlCommand command = new SqlCommand(selectQuery, connection);
-
-                try
+                using (SqlCommand command = new SqlCommand(query, connection))
                 {
-                    connection.Open();
-                    SqlDataReader reader = command.ExecuteReader();
-
-                    while (reader.Read())
+                    try
                     {
-                        var row = new Dictionary<string, object>();
-
-                        for (int i = 0; i < reader.FieldCount; i++)
+                        connection.Open();
+                        using (SqlDataAdapter adapter = new SqlDataAdapter(command))
                         {
-                            row.Add(reader.GetName(i), reader[i]);
+                            adapter.Fill(dataTable);
                         }
-
-                        results.Add(row);
                     }
-
-                    reader.Close();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Error: " + ex.Message);
+                    catch (SqlException ex)
+                    {
+                        Console.WriteLine("Error executing query: " + ex.Message);
+                    }
                 }
             }
+            return dataTable;
+        }
 
-            return results;
+        public bool ExecuteNonQuery(string query)
+        {
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    try
+                    {
+                        connection.Open();
+                        command.ExecuteNonQuery();
+                        return true;
+                    }
+                    catch (SqlException ex)
+                    {
+                        Console.WriteLine("Error executing non-query: " + ex.Message);
+                        return false;
+                    }
+                }
+            }
         }
     }
 }
